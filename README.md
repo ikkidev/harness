@@ -52,9 +52,9 @@ jobs:
           tier: ${{ needs.tier.outputs.tier }}
 ```
 
-`harness/review` is also a required check; its producer differs by tier (see Review status below).
-
 The tier job must expose `outputs.tier` as above for `needs.tier.outputs.tier` to resolve. Inputs: `tier` (required), `token`, `config-path`. The PR also needs `pull_request` types `edited` and `labeled` in the workflow trigger to re-run when the body or labels change.
+
+`harness/review` is also a required check; its producer differs by tier (see Review status below).
 
 Rules, listed in the order they are reported (`Issue`, `Tests`, `Evidence`, `Invariants`). A section is a `## <Name>` heading (case-insensitive) up to the next `## ` heading. A section with `<!--` anywhere still has its template placeholder and fails.
 
@@ -65,7 +65,7 @@ Rules, listed in the order they are reported (`Issue`, `Tests`, `Evidence`, `Inv
 
 ## Review status (low and normal)
 
-`harness/review` is a required check whose producer differs by tier: the authoring Claude Code session posts it locally for low and normal; a CI reviewer posts it for high (a later task).
+`harness/review` is a required check whose producer differs by tier: the authoring Claude Code session posts it locally for low and normal; a CI reviewer posts it for high.
 
 For low and normal, after applying `review/low.md` or `review/normal.md`, the session runs from the consumer repo checkout, with the developer's `gh` login:
 
