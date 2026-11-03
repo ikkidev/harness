@@ -52,6 +52,8 @@ jobs:
           tier: ${{ needs.tier.outputs.tier }}
 ```
 
+`harness/review` is also a required check; its producer differs by tier (see Review status below).
+
 The tier job must expose `outputs.tier` as above for `needs.tier.outputs.tier` to resolve. Inputs: `tier` (required), `token`, `config-path`. The PR also needs `pull_request` types `edited` and `labeled` in the workflow trigger to re-run when the body or labels change.
 
 Rules, listed in the order they are reported (`Issue`, `Tests`, `Evidence`, `Invariants`). A section is a `## <Name>` heading (case-insensitive) up to the next `## ` heading. A section with `<!--` anywhere still has its template placeholder and fails.
@@ -60,6 +62,22 @@ Rules, listed in the order they are reported (`Issue`, `Tests`, `Evidence`, `Inv
 - Tests: required when any changed file is not a doc (`docs/**` or `**/*.md`). The `## Tests` section must contain the path of a changed file matching `/(spec|test|__tests__|e2e|maestro)/`.
 - Evidence: required when a changed file matches an `evidence.screenshots_for` glob. The `## Evidence` section must contain a Markdown image (`![`), an `<img` tag, a URL ending in `.png|.jpg|.jpeg|.gif|.mp4|.mov|.webm`, or a URL containing `/actions/runs/` or `/artifacts/`.
 - Invariants: required when `evidence.invariants` is true and the tier is `high`. The `## Invariants` section must be present and non-empty.
+
+## Review status (low and normal)
+
+`harness/review` is a required check whose producer differs by tier: the authoring Claude Code session posts it locally for low and normal; a CI reviewer posts it for high (a later task).
+
+For low and normal, after applying `review/low.md` or `review/normal.md`, the session runs from the consumer repo checkout, with the developer's `gh` login:
+
+```
+node bin/review-status.mjs <pr-number> <head-sha> <approved|changes-requested> [round]
+```
+
+It posts `harness/review` on the SHA: `success` for approved, `failure` for changes-requested, description `round <n>: <verdict>` (round defaults to 1).
+
+- It refuses with an `ERROR:` line and exit 1 when the verdict word is anything else, or when no `harness/tier` status exists on the SHA yet.
+- It refuses when the SHA's tier is `high`: the local agent never posts a review status there, and high-tier merges also need a code-owner review.
+- Below high tier the status is spoofable by the same agent that wrote the change. That is by design: it is a process gate, and the tier, evidence and CI checks remain independent.
 
 ## harness.yml
 
