@@ -69,7 +69,7 @@ The tier job must expose `outputs.tier` as above for `needs.tier.outputs.tier` t
 Rules, listed in the order they are reported (`Issue`, `Tests`, `Evidence`, `Invariants`). A section is a `## <Name>` heading (case-insensitive) up to the next `## ` heading. A section with `<!--` anywhere still has its template placeholder and fails.
 
 - Issue: the body has `Closes|Fixes|Resolves #N` (case-insensitive), or the PR has the `no-issue` label.
-- Tests: required when any changed file is not a doc (`docs/**` or `**/*.md`), unless the PR has the `no-tests` label. On `high` tier the label is accepted but the status reads `ok (no-tests on high)`, and the approver must judge the label. The `## Tests` section must contain the path of a changed file matching `/(spec|test|__tests__|e2e|maestro)/`.
+- Tests: required when any changed file is not a doc (`docs/**` or `**/*.md`), unless the PR has the `no-tests` label. On `high` tier the label is accepted but the status reads `ok (no-tests on high)`, and the approver must judge the label. The `## Tests` section must contain the path of a changed file under a `spec`, `specs`, `test`, `tests`, `__tests__`, `e2e` or `maestro` directory, or named `*.test.*`, `*.spec.*` (JS/TS), `*_spec.rb` or `*_test.go`.
 - Evidence: required when a changed file matches an `evidence.screenshots_for` glob. The `## Evidence` section must contain a Markdown image (`![`), an `<img` tag, a URL ending in `.png|.jpg|.jpeg|.gif|.mp4|.mov|.webm`, or a URL containing `/actions/runs/` or `/artifacts/`.
 - Invariants: required when `evidence.invariants` is true and the tier is `high`. The `## Invariants` section must be present and non-empty.
 
