@@ -14,7 +14,7 @@ function main() {
 
   const config = readConfig(repo, baseRef, configPath);
   const files = changedFiles(repo, number);
-  const tier = resolveTier(files, config);
+  const tier = resolveTier(files, config, configPath);
 
   const current = gh('pr', 'view', String(number), '--repo', repo, '--json', 'labels', '--jq', '.labels[].name')
     .split('\n')
@@ -28,6 +28,7 @@ function main() {
   gh('pr', 'edit', String(number), '--repo', repo, '--add-label', spec.name);
 
   postStatus(repo, headSha, 'harness/tier', 'success', `tier=${tier}`);
+  if (tier === 'high') postStatus(repo, headSha, 'harness/review', 'pending', 'high tier: awaiting approver');
 
   console.log(`tier=${tier}`);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `tier=${tier}\n`);

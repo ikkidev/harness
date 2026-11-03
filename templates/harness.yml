@@ -1,5 +1,5 @@
 default: normal
-approvers: [ikkidev-approver]
+approvers: [ikkidevops]
 tiers:
   high: ["src/server/**", ".github/**", "harness.yml", "CODEOWNERS"]
   low: ["docs/**", "**/*.md"]

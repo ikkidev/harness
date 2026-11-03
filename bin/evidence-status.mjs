@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
-import { checkEvidence } from '../lib/evidence.mjs';
+import { assertTier, checkEvidence } from '../lib/evidence.mjs';
 import { changedFiles, gh, postStatus, readConfig } from '../lib/gh.mjs';
 import { parseEvent } from '../lib/tier-status.mjs';
 
@@ -9,7 +9,7 @@ function main() {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   const tier = process.env.HARNESS_TIER;
   if (!repo || !eventPath) throw new Error('GITHUB_REPOSITORY and GITHUB_EVENT_PATH are required');
-  if (!tier) throw new Error('HARNESS_TIER is required');
+  assertTier(tier);
   const configPath = process.env.HARNESS_CONFIG_PATH || 'harness.yml';
 
   const { number, baseRef, headSha } = parseEvent(JSON.parse(readFileSync(eventPath, 'utf8')));

@@ -12,17 +12,27 @@ Pin by commit SHA, never by tag.
 name: harness
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+concurrency:
+  group: harness-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 permissions:
   contents: read
   statuses: write
   pull-requests: write
 jobs:
   tier:
+    if: >-
+      !((github.event.action == 'labeled' || github.event.action == 'unlabeled')
+      && startsWith(github.event.label.name, 'risk:'))
     runs-on: ubuntu-latest
     steps:
       - uses: ikkidev/harness/actions/tier@<full-commit-sha>
 ```
+
+- `edited`, `labeled`, `unlabeled` re-run the checks when the PR body or labels (such as `no-issue`, `no-tests`) change.
+- The job-level `if` skips runs triggered by the action's own `risk:` label writes, which would otherwise retrigger the workflow in a loop.
+- `concurrency` with `cancel-in-progress` keeps a stale run from posting a status after a newer push.
 
 The action creates and manages the `risk:low|normal|high` labels itself and removes stale ones; the label work runs before the status is posted, so the status is the last write.
 
@@ -52,20 +62,26 @@ jobs:
           tier: ${{ needs.tier.outputs.tier }}
 ```
 
-The tier job must expose `outputs.tier` as above for `needs.tier.outputs.tier` to resolve. Inputs: `tier` (required), `token`, `config-path`. The PR also needs `pull_request` types `edited` and `labeled` in the workflow trigger to re-run when the body or labels change.
+The tier job must expose `outputs.tier` as above for `needs.tier.outputs.tier` to resolve. Inputs: `tier` (required), `token`, `config-path`. The trigger types, `if` and `concurrency` from the tier wiring above apply to the whole workflow.
 
 `harness/review` is also a required check; its producer differs by tier (see Review status below).
 
 Rules, listed in the order they are reported (`Issue`, `Tests`, `Evidence`, `Invariants`). A section is a `## <Name>` heading (case-insensitive) up to the next `## ` heading. A section with `<!--` anywhere still has its template placeholder and fails.
 
 - Issue: the body has `Closes|Fixes|Resolves #N` (case-insensitive), or the PR has the `no-issue` label.
-- Tests: required when any changed file is not a doc (`docs/**` or `**/*.md`). The `## Tests` section must contain the path of a changed file matching `/(spec|test|__tests__|e2e|maestro)/`.
+- Tests: required when any changed file is not a doc (`docs/**` or `**/*.md`), unless the PR has the `no-tests` label and the tier is `low` or `normal` (`high` always requires Tests). The `## Tests` section must contain the path of a changed file matching `/(spec|test|__tests__|e2e|maestro)/`.
 - Evidence: required when a changed file matches an `evidence.screenshots_for` glob. The `## Evidence` section must contain a Markdown image (`![`), an `<img` tag, a URL ending in `.png|.jpg|.jpeg|.gif|.mp4|.mov|.webm`, or a URL containing `/actions/runs/` or `/artifacts/`.
 - Invariants: required when `evidence.invariants` is true and the tier is `high`. The `## Invariants` section must be present and non-empty.
 
-## Review status (low and normal)
+## Review status
 
-`harness/review` is a required check whose producer differs by tier: the authoring Claude Code session posts it locally for low and normal; a CI reviewer posts it for high.
+`harness/review` is a required check whose producer differs by tier: the authoring Claude Code session posts it locally for low and normal.
+
+For high tier, the tier action posts `harness/review` as `pending` (`high tier: awaiting approver`). The approver account posts the success status by hand after their code-owner review, until a CI-hosted reviewer exists:
+
+```
+gh api -X POST repos/{owner}/{repo}/statuses/<sha> -f state=success -f context=harness/review -f description="approved by <login>"
+```
 
 For low and normal, after applying `review/low.md` or `review/normal.md`, the session runs from the consumer repo checkout, with the developer's `gh` login:
 
@@ -76,7 +92,7 @@ node bin/review-status.mjs <pr-number> <head-sha> <approved|changes-requested> [
 It posts `harness/review` on the SHA: `success` for approved, `failure` for changes-requested, description `round <n>: <verdict>` (round defaults to 1).
 
 - It refuses with an `ERROR:` line and exit 1 when the verdict word is anything else, or when no `harness/tier` status exists on the SHA yet.
-- It refuses when the SHA's tier is `high`: the local agent never posts a review status there, and high-tier merges also need a code-owner review.
+- It refuses when the SHA is not the head of the PR, and when the tier (read from the `github-actions[bot]` status) is `high`: the local agent never posts a review status there, and high-tier merges also need a code-owner review.
 - Below high tier the status is spoofable by the same agent that wrote the change. That is by design: it is a process gate, and the tier, evidence and CI checks remain independent.
 
 ## harness.yml
@@ -95,7 +111,7 @@ evidence:
   invariants: false
 ```
 
-A PR takes the highest tier among its changed paths (high > normal > low). A path matching several tiers takes the highest. An empty PR takes `default`. Globs use minimatch with `dot: true`.
+Regardless of config, `.github/**`, `CODEOWNERS` (at any depth) and the config file itself are always high. A PR takes the highest tier among its changed paths (high > normal > low). A path matching several tiers takes the highest. An empty PR takes `default`. Globs use minimatch with `dot: true`.
 
 ## Development
 

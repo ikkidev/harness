@@ -1,6 +1,6 @@
 # Review checklist: normal tier
 
-Everything in the low checklist, plus the code checks below. Answer each check pass or fail with a `file:line` citation.
+The low checks listed below that still apply, plus the code checks. Answer each check pass or fail with a `file:line` citation.
 
 ## Output contract
 
