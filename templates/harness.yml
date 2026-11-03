@@ -1,0 +1,8 @@
+default: normal
+approvers: [ikkidevops]
+tiers:
+  high: ["src/server/**", ".github/**", "harness.yml", "CODEOWNERS"]
+  low: ["docs/**", "**/*.md"]
+evidence:
+  screenshots_for: ["src/**/*.tsx", "app/**/*.tsx"]
+  invariants: false

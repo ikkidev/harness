@@ -1,0 +1,15 @@
+{
+  "name": "harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test lib/**/*.test.mjs"
+  },
+  "dependencies": {
+    "minimatch": "11.0.4",
+    "yaml": "2.9.1"
+  }
+}
