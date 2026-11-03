@@ -13,9 +13,6 @@ name: harness
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
-concurrency:
-  group: harness-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 permissions:
   contents: read
   statuses: write
@@ -25,14 +22,17 @@ jobs:
     if: >-
       !((github.event.action == 'labeled' || github.event.action == 'unlabeled')
       && startsWith(github.event.label.name, 'risk:'))
+    concurrency:
+      group: harness-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - uses: ikkidev/harness/actions/tier@<full-commit-sha>
 ```
 
 - `edited`, `labeled`, `unlabeled` re-run the checks when the PR body or labels (such as `no-issue`, `no-tests`) change.
-- The job-level `if` skips runs triggered by the action's own `risk:` label writes, which would otherwise retrigger the workflow in a loop.
-- `concurrency` with `cancel-in-progress` keeps a stale run from posting a status after a newer push.
+- The job-level `if` skips `risk:` label events. With the default `github.token` the action's own label writes trigger no workflows (GITHUB_TOKEN events are suppressed), so the guard matters only when a PAT is used as `token`, or when a human edits a `risk:` label while a run is in flight.
+- `concurrency` with `cancel-in-progress` keeps a stale run from posting a status after a newer push. It is set at job level so a job skipped by its `if` does not claim the group and cancel a live run.
 
 The action creates and manages the `risk:low|normal|high` labels itself and removes stale ones; the label work runs before the status is posted, so the status is the last write.
 
@@ -62,7 +62,7 @@ jobs:
           tier: ${{ needs.tier.outputs.tier }}
 ```
 
-The tier job must expose `outputs.tier` as above for `needs.tier.outputs.tier` to resolve. Inputs: `tier` (required), `token`, `config-path`. The trigger types, `if` and `concurrency` from the tier wiring above apply to the whole workflow.
+The tier job must expose `outputs.tier` as above for `needs.tier.outputs.tier` to resolve. Inputs: `tier` (required), `token`, `config-path`. Use the trigger types from the tier wiring above; put the same `concurrency` block on the evidence job.
 
 `harness/review` is also a required check; its producer differs by tier (see Review status below).
 
@@ -92,6 +92,7 @@ node bin/review-status.mjs <pr-number> <head-sha> <approved|changes-requested> [
 It posts `harness/review` on the SHA: `success` for approved, `failure` for changes-requested, description `round <n>: <verdict>` (round defaults to 1).
 
 - It refuses with an `ERROR:` line and exit 1 when the verdict word is anything else, or when no `harness/tier` status exists on the SHA yet.
+- With a PAT as the action's `token`, the `harness/tier` creator is the PAT user, not `github-actions[bot]`, so `review-status` refuses; use the default token.
 - It refuses when the SHA is not the head of the PR, and when the tier (read from the `github-actions[bot]` status) is `high`: the local agent never posts a review status there, and high-tier merges also need a code-owner review.
 - Below high tier the status is spoofable by the same agent that wrote the change. That is by design: it is a process gate, and the tier, evidence and CI checks remain independent.
 

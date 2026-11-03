@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { appendFileSync, readFileSync } from 'node:fs';
-import { changedFiles, gh, postStatus, readConfig } from '../lib/gh.mjs';
+import { changedFiles, gh, postStatus, readConfig, statusDescription } from '../lib/gh.mjs';
 import { resolveTier } from '../lib/tier.mjs';
-import { parseEvent, riskLabelSpec, staleRiskLabels } from '../lib/tier-status.mjs';
+import { parseEvent, riskLabelSpec, shouldPostPendingReview, staleRiskLabels } from '../lib/tier-status.mjs';
 
 function main() {
   const repo = process.env.GITHUB_REPOSITORY;
@@ -28,7 +28,8 @@ function main() {
   gh('pr', 'edit', String(number), '--repo', repo, '--add-label', spec.name);
 
   postStatus(repo, headSha, 'harness/tier', 'success', `tier=${tier}`);
-  if (tier === 'high') postStatus(repo, headSha, 'harness/review', 'pending', 'high tier: awaiting approver');
+  const existing = tier === 'high' ? statusDescription(repo, headSha, 'harness/review') : null;
+  if (shouldPostPendingReview({ tier, existing })) postStatus(repo, headSha, 'harness/review', 'pending', 'high tier: awaiting approver');
 
   console.log(`tier=${tier}`);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `tier=${tier}\n`);
