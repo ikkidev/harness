@@ -24,6 +24,10 @@ jobs:
       - uses: ikkidev/harness/actions/tier@<full-commit-sha>
 ```
 
+The action creates and manages the `risk:low|normal|high` labels itself and removes stale ones; the label work runs before the status is posted, so the status is the last write.
+
+On `pull_request` events from forks the token is read-only, so the status and label calls fail with 403; the action is meant for same-repo branches (private repos).
+
 Inputs: `token` (default `github.token`), `config-path` (default `harness.yml`). Output: `tier`.
 
 ## harness.yml

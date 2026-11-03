@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 import { resolveTier } from '../lib/tier.mjs';
-import { parseEvent, staleRiskLabels } from '../lib/tier-status.mjs';
+import { parseEvent, riskLabelSpec, staleRiskLabels } from '../lib/tier-status.mjs';
 
 const gh = (...args) => execFileSync('gh', args, { encoding: 'utf8' });
 
@@ -23,16 +23,19 @@ function main() {
     .filter(Boolean);
   const tier = resolveTier(files, config);
 
-  gh('api', '-X', 'POST', `repos/${repo}/statuses/${headSha}`,
-    '-f', 'state=success', '-f', 'context=harness/tier', '-f', `description=tier=${tier}`);
-
   const current = gh('pr', 'view', String(number), '--repo', repo, '--json', 'labels', '--jq', '.labels[].name')
     .split('\n')
     .filter(Boolean);
   for (const label of staleRiskLabels(current, tier)) {
     gh('pr', 'edit', String(number), '--repo', repo, '--remove-label', label);
   }
-  gh('pr', 'edit', String(number), '--repo', repo, '--add-label', `risk:${tier}`);
+  const spec = riskLabelSpec(tier);
+  gh('label', 'create', spec.name, '--repo', repo, '--force',
+    '--color', spec.color, '--description', spec.description);
+  gh('pr', 'edit', String(number), '--repo', repo, '--add-label', spec.name);
+
+  gh('api', '-X', 'POST', `repos/${repo}/statuses/${headSha}`,
+    '-f', 'state=success', '-f', 'context=harness/tier', '-f', `description=tier=${tier}`);
 
   console.log(`tier=${tier}`);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `tier=${tier}\n`);
