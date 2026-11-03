@@ -17,14 +17,14 @@ function main() {
   const files = changedFiles(repo, number);
   const pr = JSON.parse(gh('pr', 'view', String(number), '--repo', repo, '--json', 'body,labels'));
 
-  const { ok, missing } = checkEvidence({
+  const { ok, missing, notes } = checkEvidence({
     body: pr.body,
     tier,
     changedFiles: files,
     labels: pr.labels.map((l) => l.name),
     config,
   });
-  const description = ok ? 'ok' : `missing: ${missing.join(', ')}`;
+  const description = ok ? (notes.length ? `ok (${notes.join(', ')})` : 'ok') : `missing: ${missing.join(', ')}`;
   postStatus(repo, headSha, 'harness/evidence', ok ? 'success' : 'failure', description);
   console.log(`evidence ${description}`);
 }
