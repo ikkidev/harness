@@ -42,7 +42,7 @@ Inputs: `token` (default `github.token`), `config-path` (default `harness.yml`).
 
 ## Wiring the evidence action
 
-Runs after the tier job and posts the commit status `harness/evidence` (`ok`, or `missing: Tests, Evidence`). A failed check is a failed status, not a failed job; the job fails only on an operational error. Copy `templates/pull_request_template.md` to `.github/pull_request_template.md`.
+Runs after the tier job and posts the commit status `harness/evidence` (`ok`, or `missing: Tests, Evidence`). A failed check is a failed status, not a failed job; the job fails only on an operational error. Copy `templates/pull_request_template.md` to `.github/pull_request_template.md`. With `evidence.standard_template: true` every section (Summary, Risk, Tests, Evidence, Deploy) must be present and not just its placeholder comment (Tests is exempt on docs-only PRs and with the `no-tests` label; write "n/a: no visible change" in Evidence when nothing is visible). Repos with `invariants: true` add their own `## Invariants` section. HTML comments are ignored in every section, also without the flag; an unterminated `<!--` hides the rest of the section and fails it.
 
 ```yaml
 jobs:
