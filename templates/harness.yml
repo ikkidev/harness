@@ -4,5 +4,6 @@ tiers:
   high: ["src/server/**", ".github/**", "harness.yml", "CODEOWNERS"]
   low: ["docs/**", "**/*.md"]
 evidence:
-  screenshots_for: ["src/**/*.tsx", "app/**/*.tsx"]
+  screenshots_for: ["src/**/!(*.test).tsx", "app/**/!(*.test).tsx"]
+  standard_template: true  # require Summary, Risk, Tests, Evidence, Deploy
   invariants: false
