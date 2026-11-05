@@ -13,11 +13,6 @@ function main() {
 
   const ev = commentEvent(JSON.parse(readFileSync(eventPath, 'utf8')), reviewer);
   if (!ev) return console.log('ignored: not a new PR comment by the reviewer');
-  const clean = stripFooter(ev.body);
-  if (clean !== null) {
-    gh('api', '-X', 'PATCH', `repos/${repo}/issues/comments/${ev.id}`, '-f', `body=${clean}`);
-    console.log('stripped the Claude Code footer');
-  }
   const verdict = parseReviewComment(ev.body);
   if (!verdict) return console.log('ignored: not a verdict comment');
 
@@ -30,6 +25,19 @@ function main() {
   postStatus(repo, verdict.sha, 'harness/review', status.state, status.description);
   if (d.label) gh('api', '-X', 'POST', `repos/${repo}/issues/${ev.number}/labels`, '-f', 'labels[]=needs-human');
   console.log(`harness/review ${status.description} on ${verdict.sha}`);
+  stripFooterBestEffort(repo, ev);
+}
+
+/* Cosmetic: never let it block the verdict. Needs pull-requests: write on PR comments. */
+function stripFooterBestEffort(repo, ev) {
+  const clean = stripFooter(ev.body);
+  if (clean === null) return;
+  try {
+    gh('api', '-X', 'PATCH', `repos/${repo}/issues/comments/${ev.id}`, '-f', `body=${clean}`);
+    console.log('stripped the Claude Code footer');
+  } catch (err) {
+    console.log(`WARNING: could not strip the footer: ${err.message.split('\n')[0]}`);
+  }
 }
 
 try {
