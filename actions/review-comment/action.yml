@@ -2,7 +2,7 @@ name: harness review comment
 description: Turn the cloud reviewer's verdict comment into the harness/review status (and needs-human after round 3).
 inputs:
   token:
-    description: Token with statuses:write, pull-requests:read and issues:write.
+    description: Token with statuses:write, pull-requests:write (to strip the footer from PR comments) and issues:write.
     default: ${{ github.token }}
   reviewer-login:
     description: The only GitHub login whose verdict comments count.
