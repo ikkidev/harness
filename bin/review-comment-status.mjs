@@ -2,7 +2,7 @@
 /* Turns the cloud reviewer's verdict comment into the harness/review status. */
 import { readFileSync } from 'node:fs';
 import { gh, postStatus, prHeadSha, statusDescription, TIER_CREATOR } from '../lib/gh.mjs';
-import { commentEvent, decide, parseReviewComment } from '../lib/review-comment.mjs';
+import { commentEvent, decide, parseReviewComment, stripFooter } from '../lib/review-comment.mjs';
 import { parseTier, statusFor } from '../lib/review-status.mjs';
 
 function main() {
@@ -13,6 +13,11 @@ function main() {
 
   const ev = commentEvent(JSON.parse(readFileSync(eventPath, 'utf8')), reviewer);
   if (!ev) return console.log('ignored: not a new PR comment by the reviewer');
+  const clean = stripFooter(ev.body);
+  if (clean !== null) {
+    gh('api', '-X', 'PATCH', `repos/${repo}/issues/comments/${ev.id}`, '-f', `body=${clean}`);
+    console.log('stripped the Claude Code footer');
+  }
   const verdict = parseReviewComment(ev.body);
   if (!verdict) return console.log('ignored: not a verdict comment');
 
