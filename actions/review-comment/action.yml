@@ -7,6 +7,18 @@ inputs:
   reviewer-login:
     description: The only GitHub login whose verdict comments count.
     required: true
+  app-id:
+    description: GitHub App id used to enable auto-merge on approval (optional).
+    default: ''
+  app-key:
+    description: That App's private key, from a secret (optional).
+    default: ''
+  merge-method:
+    description: merge, squash or rebase, for auto-merge.
+    default: merge
+  auto-merge-bases:
+    description: Base branches (comma or space separated) whose PRs get auto-merge on approval. Only protected branches with required checks; never a release branch fed by promotes. Empty disables auto-merge.
+    default: ''
 runs:
   using: composite
   steps:
@@ -21,3 +33,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.token }}
         HARNESS_REVIEWER_LOGIN: ${{ inputs.reviewer-login }}
+        HARNESS_APP_ID: ${{ inputs.app-id }}
+        HARNESS_APP_KEY: ${{ inputs.app-key }}
+        HARNESS_MERGE_METHOD: ${{ inputs.merge-method }}
+        HARNESS_AUTO_MERGE_BASES: ${{ inputs.auto-merge-bases }}
