@@ -1,0 +1,23 @@
+name: harness review comment
+description: Turn the cloud reviewer's verdict comment into the harness/review status (and needs-human after round 3).
+inputs:
+  token:
+    description: Token with statuses:write, pull-requests:read and issues:write.
+    default: ${{ github.token }}
+  reviewer-login:
+    description: The only GitHub login whose verdict comments count.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: 22
+    - run: npm ci --omit=dev
+      shell: bash
+      working-directory: ${{ github.action_path }}/../..
+    - run: node "${{ github.action_path }}/../../bin/review-comment-status.mjs"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        HARNESS_REVIEWER_LOGIN: ${{ inputs.reviewer-login }}
