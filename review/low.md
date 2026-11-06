@@ -19,5 +19,5 @@ Docs and copy only. Answer each check pass or fail with a `file:line` citation.
 3. Every relative path and anchor added or edited resolves to an existing file or heading (check with Read/Glob). External URLs are checked for well-formed format only, not fetched.
 4. No PR-template placeholder (`<!--`) is left in the PR body or in any changed file.
 5. No secrets, tokens, credentials, or private hostnames appear in the diff.
-6. No attribution footers or trailers (`Co-Authored-By`, "Generated with") appear in the diff, commits, or PR body.
+6. No attribution footers or trailers (`Co-Authored-By`, "Generated with") appear in the diff, commits, or PR body. Applies only when the PR author is `ikkidev`, `app/seatsnags-harness` or `app/ikkidev-harness`; other authors' attribution lines are not a finding.
 7. Each acceptance criterion in the linked issue is satisfied by the change, or the PR states why it is out of scope.

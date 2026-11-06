@@ -17,7 +17,7 @@ The low checks listed below that still apply, plus the code checks. Answer each 
 1. No PR-template placeholder (`<!--`) is left in the PR body or in any changed file.
 2. Every relative path and anchor added or edited resolves (Read/Glob); external URLs are checked for format only.
 3. No secrets, tokens, credentials, or private hostnames appear in the diff.
-4. No attribution footers or trailers (`Co-Authored-By`, "Generated with") appear in the diff, commits, or PR body.
+4. No attribution footers or trailers (`Co-Authored-By`, "Generated with") appear in the diff, commits, or PR body. Applies only when the PR author is `ikkidev`, `app/seatsnags-harness` or `app/ikkidev-harness`; other authors' attribution lines are not a finding.
 
 ## Normal checks
 
