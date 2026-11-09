@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { installationToken } from '../lib/app-token.mjs';
 import { parseBases, runAutoMerge } from '../lib/auto-merge.mjs';
 import { gh, postStatus, prHeadSha, statusDescription, TIER_CREATOR } from '../lib/gh.mjs';
-import { commentEvent, decide, parseReviewComment, stripFooter } from '../lib/review-comment.mjs';
+import { commentEvent, decide, parseReviewComment, stripFooterBestEffort } from '../lib/review-comment.mjs';
 import { parseTier, statusFor } from '../lib/review-status.mjs';
 
 async function main() {
@@ -28,7 +28,7 @@ async function main() {
   postStatus(repo, verdict.sha, 'harness/review', status.state, status.description);
   if (d.label) gh('api', '-X', 'POST', `repos/${repo}/issues/${ev.number}/labels`, '-f', 'labels[]=needs-human');
   console.log(`harness/review ${status.description} on ${verdict.sha}`);
-  stripFooterBestEffort(repo, ev);
+  stripFooterBestEffort(repo, ev, { exec: gh });
   await autoMergeStep(repo, ev.number, verdict);
 }
 
