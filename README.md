@@ -97,6 +97,39 @@ It posts `harness/review` on the SHA: `success` for approved, `failure` for chan
 - It refuses when the SHA is not the head of the PR, and when the tier (read from the `github-actions[bot]` status) is `high`: the local agent never posts a review status there, and high-tier merges also need a code-owner review.
 - Below high tier the status is spoofable by the same agent that wrote the change. That is by design: it is a process gate, and the tier, evidence and CI checks remain independent.
 
+## Cross-repo order: depends-on and record-deployed
+
+For a repo that deploys on merge (the website) paired with an upstream that reaches production only after a promote (the API). The upstream records what production runs; the downstream holds each PR until the upstream PRs it names are in it.
+
+**Upstream, `record-deployed`.** Reads the detailed `/health` report (web commit and every worker commit; any invalid or missing one fails the run without writing), takes the commit every process contains, refuses one that is not on `branch`, and force-moves `deployed/production` there. With `wait-for` it polls every 30 s until every process contains that sha (on timeout it records what runs and fails). Output `moved` says whether the branch moved, for a follow-up `repository_dispatch` to the downstream. Run it on push to the deploy branch, on a schedule (manual deploys and rollbacks) and by hand, all in one `concurrency` group without cancelling: the refs API has no compare-and-swap, so two runs must never overlap. Nobody pushes to or opens PRs from `deployed/production`.
+
+**Downstream, `depends-on`.** Posts `harness/depends-on` on every PR, so it can be a required check:
+
+- A "Depends on" (or "Blocked by") line or heading opens a block; `owner/repo#N`, `repo#N` and github.com pull URLs of `upstream-repo` inside it count. A heading block runs to the next heading; any other block to the next heading or two blank lines. HTML comments are ignored.
+- `success` when there is no dependency (naming upstream refs mentioned outside a block), or when every named PR's merge commit is contained in `deployed-branch` (or in `upstream-branch` when `deployed-branch` is empty).
+- `pending` while waiting: not merged, merged but not on `upstream-branch`, not running in production yet, or no `deployed-branch` recorded.
+- `failure` when only a body edit fixes it: not a pull request, closed without merging, or no `upstream-token`.
+
+On `pull_request` events it checks that PR; on any other event, every open PR. It reads each PR from the API right before judging it and again before posting, skips the post if the body or head changed meanwhile (that edit's own run owns it), and posts only on change. If the deployed branch moves during a run it checks again. Require the context with GitHub Actions as its source, or anyone with write access could post it.
+
+```yaml
+# downstream, in the harness workflow (pull_request types as above)
+  depends-on:
+    runs-on: ubuntu-latest
+    permissions: { statuses: write, pull-requests: read, contents: read }
+    steps:
+      - id: app
+        continue-on-error: true   # no secrets (e.g. Dependabot): PRs with a dependency fail, others pass
+        uses: actions/create-github-app-token@<sha>
+        with: { app-id: ..., private-key: ..., owner: <owner>, repositories: <upstream>, permission-contents: read, permission-pull-requests: read }
+      - uses: ikkidev/harness/actions/depends-on@<full-commit-sha>
+        with:
+          upstream-token: ${{ steps.app.outputs.token }}
+          upstream-repo: <owner>/<upstream>
+```
+
+Re-run the same step from a workflow on `repository_dispatch` (sent by the upstream when `moved`), a daily `schedule` as a backstop, and `workflow_dispatch`.
+
 ## harness.yml
 
 See `templates/harness.yml`.
