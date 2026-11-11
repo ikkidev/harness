@@ -20,9 +20,14 @@ function main() {
   const automatedStatus = config.evidence?.automated_status;
   const automated = automatedStatus && config.evidence?.automated_screens_section;
   /* Last read before posting, so a stale failure is less likely to overwrite a fresh success. */
-  const automatedEvidence = automated
-    ? statusState(repo, headSha, automatedStatus, { creator: TIER_CREATOR }) === 'success'
-    : false;
+  let automatedEvidence = false;
+  if (automated) {
+    try {
+      automatedEvidence = statusState(repo, headSha, automatedStatus, { creator: TIER_CREATOR }) === 'success';
+    } catch (err) {
+      console.error(`NOTE: automated status lookup failed: ${err.constructor.name}`);
+    }
+  }
 
   const { ok, missing, notes } = checkEvidence({
     body: pr.body,
