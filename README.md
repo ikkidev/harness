@@ -71,6 +71,7 @@ Rules, listed in the order they are reported (`Issue`, `Tests`, `Evidence`, `Inv
 - Issue: outside HTML comments, the body has one of: `Closes|Fixes|Resolves` with `#N`, `owner/repo#N` or a GitHub issue URL; `Part of`, `Refs`, `Tracked in`, `Relates to` or `Plan:` followed within three words by a reference (an issue such as `#N` or `repo#N`, a ticket key such as `SMF-5`, an epic such as `E27`, a `.md` plan path, a URL, or "the plan" / "the brief"); a Notion URL; an epic step (`Step 7 of E25`, `E27 slice 1`); or a `## Issue` section containing a reference. Otherwise the PR needs the `no-issue` label. Only the closing keywords close issues on merge.
 - Tests: required when any changed file is not a doc (`docs/**` or `**/*.md`), unless the PR has the `no-tests` label. On `high` tier the label is accepted but the status reads `ok (no-tests on high)`, and the approver must judge the label. The `## Tests` section must contain the path of a changed file under a `spec`, `specs`, `test`, `tests`, `__tests__`, `e2e` or `maestro` directory, or named `*.test.*`, `*.spec.*` (JS/TS), `*_spec.rb` or `*_test.go`.
 - Evidence: required when a changed file matches an `evidence.screenshots_for` glob. Files named `*.test.*` / `*.spec.*` (JS/TS) or under a `__tests__` directory never count. The `## Evidence` section must contain a Markdown image (`![`), an `<img` tag, a URL ending in `.png|.jpg|.jpeg|.gif|.mp4|.mov|.webm`, or a URL containing `/actions/runs/` or `/artifacts/`.
+- Automated evidence: when `evidence.automated_status` (a status context) and `evidence.automated_screens_section` (a body section name) are both set, a `screenshots_for` match with no media passes if the newest `github-actions[bot]` status of that context on the head SHA is `success` and the named section has a line starting with a page path (`/event/1`, optionally after a list marker or backtick). The status description includes `automated evidence (<context>)`. A status does not re-run the check: the consumer's workflow must re-run `harness-gate` after posting it.
 - Invariants: required when `evidence.invariants` is true and the tier is `high`. The `## Invariants` section must be present and non-empty.
 
 ## Review status
@@ -109,6 +110,8 @@ tiers:
   low: ["docs/**", "**/*.md"]
 evidence:
   screenshots_for: ["src/**/*.tsx"]
+  automated_status: "preview/screens"      # optional; set both or neither
+  automated_screens_section: "Screens"     # optional; set both or neither
   invariants: false
 ```
 
