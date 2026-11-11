@@ -23,7 +23,7 @@
 ## Review Focus
 
 - **Force-pushed `before` no longer on any ref**: `git fetch origin <sha>` is tried; if it still fails, post nothing (test: `fingerprint` returns null for an unknown SHA).
-- **Rebase and retarget at once**: GitHub sends `edited` (base) and `synchronize` separately; each is handled on its own and the later run wins via `concurrency` (test: `carryEvent` for both payload shapes).
+- **Rebase and retarget at once**: GitHub sends `edited` (base) and `synchronize` separately. The sync path refuses to carry when the PR timeline shows a base change after the review (final review C1); runs queue rather than cancel.
 - **`before` has only a carried success**: chains keep carrying (test: a prior description starting `carried from` still counts).
 - **Prior `harness/review` is failure or from an untrusted creator**: post nothing.
 - **Whitespace-only change** (YAML indentation): a different fingerprint (test in Task 1).
@@ -99,7 +99,7 @@
 **Interfaces:**
 - Consumes: the Task 3 action at the harness merge SHA.
 
-- [ ] **Step 1: Add the job**: `if: github.event.action == 'synchronize' || (github.event.action == 'edited' && github.event.changes.base)`; `permissions: { statuses: write, contents: read, pull-requests: read }`; `concurrency: { group: harness-carry-${{ github.event.pull_request.number }}, cancel-in-progress: true }`; steps: `actions/checkout` (pinned SHA, as elsewhere in these workflows) with `fetch-depth: 0`, then `ikkidev/harness/actions/carry-review@<merge SHA>`.
+- [ ] **Step 1: Add the job**: `if: github.event.action == 'synchronize' || (github.event.action == 'edited' && github.event.changes.base)`; `permissions: { statuses: write, contents: read, pull-requests: read }`; `needs: tier`; `concurrency: { group: harness-carry-${{ github.event.pull_request.number }}, cancel-in-progress: false }`; steps: `actions/checkout` (pinned SHA, as elsewhere in these workflows) with `fetch-depth: 0`, then `ikkidev/harness/actions/carry-review@<merge SHA>`.
 - [ ] **Step 2: Verify the YAML** parses: `node --input-type=module -e "import {parse} from '/Users/ikkilachance/Projects/harness/node_modules/yaml/dist/index.js'; import {readFileSync} from 'node:fs'; parse(readFileSync('.github/workflows/harness-gate.yml','utf8')); console.log('OK')"`, plus `actionlint` if installed.
 - [ ] **Step 3: Commit, push, open the PR**: body links the harness PR, label `no-tests`, `Tier: high (.github/**)`. Ikki approves.
 
@@ -123,3 +123,4 @@
 | 2026-11-11 | Fingerprints computed at run time from `before`/`after`, not recorded at approval | Same guarantee, and the three producers of `harness/review` stay untouched. |
 | 2026-11-11 | `patch-id --verbatim` over the three-dot diff | Ignores line positions, keeps whitespace; matches GitHub's "Files changed". |
 | 2026-11-11 | Honor system | Ikki: cofounders, no point guarding strictly. |
+| 2026-11-11 | Final review fixes C1, I1-I4 | Sync refuses after a base change; retarget doubt posts failure; a newer verdict on the new head wins; squash retargets ask for re-review (documented, tested); retarget path smoke-tested. |
