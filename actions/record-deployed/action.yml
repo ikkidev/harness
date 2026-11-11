@@ -1,0 +1,55 @@
+name: harness record-deployed
+description: Move a branch (default deployed/production) to the commit every production process reports in its detailed /health.
+inputs:
+  token:
+    description: Token with contents:write on this repo.
+    default: ${{ github.token }}
+  health-url:
+    description: The production /health URL.
+    required: true
+  health-token:
+    description: The token for the detailed /health view, from a secret.
+    required: true
+  health-header:
+    description: Header that carries health-token.
+    default: X-Health-Token
+  branch:
+    description: The branch production deploys from; a commit not on it is never recorded.
+    default: main
+  deployed-branch:
+    description: The branch to move.
+    default: deployed/production
+  wait-for:
+    description: Optional sha every production process must contain before recording (e.g. github.sha on push).
+    default: ''
+  wait-minutes:
+    description: How long to wait for wait-for. On timeout the action records what runs and fails.
+    default: '20'
+outputs:
+  moved:
+    description: true when the deployed branch moved.
+    value: ${{ steps.record.outputs.moved }}
+  sha:
+    description: The recorded commit.
+    value: ${{ steps.record.outputs.sha }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: 22
+    - run: npm ci --omit=dev
+      shell: bash
+      working-directory: ${{ github.action_path }}/../..
+    - id: record
+      run: node "${{ github.action_path }}/../../bin/record-deployed.mjs"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        HARNESS_HEALTH_URL: ${{ inputs.health-url }}
+        HARNESS_HEALTH_TOKEN: ${{ inputs.health-token }}
+        HARNESS_HEALTH_HEADER: ${{ inputs.health-header }}
+        HARNESS_BRANCH: ${{ inputs.branch }}
+        HARNESS_DEPLOYED_BRANCH: ${{ inputs.deployed-branch }}
+        HARNESS_WAIT_FOR: ${{ inputs.wait-for }}
+        HARNESS_WAIT_MINUTES: ${{ inputs.wait-minutes }}

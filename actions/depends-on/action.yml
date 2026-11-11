@@ -1,0 +1,35 @@
+name: harness depends-on
+description: Post harness/depends-on - pending or failure until every upstream PR named under "Depends on" runs in production.
+inputs:
+  token:
+    description: Token with statuses:write and pull-requests:read on this repo.
+    default: ${{ github.token }}
+  upstream-token:
+    description: Token with contents:read and pull-requests:read on the upstream repo (e.g. a GitHub App token). Empty fails every PR that has a dependency.
+    default: ''
+  upstream-repo:
+    description: The upstream repo, owner/name.
+    required: true
+  upstream-branch:
+    description: The upstream branch production deploys from.
+    default: main
+  deployed-branch:
+    description: Upstream branch that record-deployed keeps on what production runs. Empty checks upstream-branch only.
+    default: deployed/production
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: 22
+    - run: npm ci --omit=dev
+      shell: bash
+      working-directory: ${{ github.action_path }}/../..
+    - run: node "${{ github.action_path }}/../../bin/depends-on-status.mjs"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        HARNESS_UPSTREAM_TOKEN: ${{ inputs.upstream-token }}
+        HARNESS_UPSTREAM_REPO: ${{ inputs.upstream-repo }}
+        HARNESS_UPSTREAM_BRANCH: ${{ inputs.upstream-branch }}
+        HARNESS_DEPLOYED_BRANCH: ${{ inputs.deployed-branch }}
