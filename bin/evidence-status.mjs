@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
 import { assertTier, checkEvidence } from '../lib/evidence.mjs';
-import { changedFiles, gh, postStatus, readConfig } from '../lib/gh.mjs';
+import { TIER_CREATOR, changedFiles, gh, postStatus, readConfig, statusState } from '../lib/gh.mjs';
 import { parseEvent } from '../lib/tier-status.mjs';
 
 function main() {
@@ -17,12 +17,20 @@ function main() {
   const files = changedFiles(repo, number);
   const pr = JSON.parse(gh('pr', 'view', String(number), '--repo', repo, '--json', 'body,labels'));
 
+  const automatedStatus = config.evidence?.automated_status;
+  const automated = automatedStatus && config.evidence?.automated_screens_section;
+  /* Last read before posting, so a stale failure is less likely to overwrite a fresh success. */
+  const automatedEvidence = automated
+    ? statusState(repo, headSha, automatedStatus, { creator: TIER_CREATOR }) === 'success'
+    : false;
+
   const { ok, missing, notes } = checkEvidence({
     body: pr.body,
     tier,
     changedFiles: files,
     labels: pr.labels.map((l) => l.name),
     config,
+    automatedEvidence,
   });
   const description = ok ? (notes.length ? `ok (${notes.join(', ')})` : 'ok') : `missing: ${missing.join(', ')}`;
   postStatus(repo, headSha, 'harness/evidence', ok ? 'success' : 'failure', description);
