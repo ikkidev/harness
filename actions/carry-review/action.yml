@@ -1,0 +1,24 @@
+name: harness carry review
+description: Keep harness/review on a PR whose head or base changed but whose changes did not; ask for a re-review when they did.
+inputs:
+  token:
+    description: Token with statuses:write and contents:read.
+    default: ${{ github.token }}
+  trusted-creators:
+    description: Comma-separated logins whose harness/review success may be carried.
+    default: github-actions[bot],seatsnags-harness[bot],ikkidev
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: 22
+    - run: npm ci --omit=dev
+      shell: bash
+      working-directory: ${{ github.action_path }}/../..
+    # Runs in the consumer's checkout (fetch-depth: 0), where git can diff the PR's commits.
+    - run: node "${{ github.action_path }}/../../bin/carry-review-status.mjs"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        HARNESS_TRUSTED_CREATORS: ${{ inputs.trusted-creators }}
