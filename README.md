@@ -97,6 +97,12 @@ It posts `harness/review` on the SHA: `success` for approved, `failure` for chan
 - It refuses when the SHA is not the head of the PR, and when the tier (read from the `github-actions[bot]` status) is `high`: the local agent never posts a review status there, and high-tier merges also need a code-owner review.
 - Below high tier the status is spoofable by the same agent that wrote the change. That is by design: it is a process gate, and the tier, evidence and CI checks remain independent.
 
+### Carrying a review to a new head
+
+`actions/carry-review` keeps `harness/review` when a PR gets a new commit or a new base but its changes are the same: a rebase onto a moved base, an empty commit to re-run CI, or a retarget after a stacked parent merged with a merge commit. After a squash merge the child's diff against the new base still contains the parent's changes, so a stacked retarget asks for a re-review. It fingerprints the PR's changes (the "Files changed" diff from the merge base, through `git patch-id --verbatim`: line positions ignored, whitespace kept) before and after. Same fingerprint and a `harness/review` success on the old head from a trusted creator: it posts `success` "carried from <sha7>: ..." on the new head. Different: `failure` "changes since <sha7> (...); re-review needed". On a new head with no earlier success, or any git or API doubt, it posts nothing, so the PR stays blocked; it also posts nothing when the base changed after the review. On a new base, where the old review already sits on the head, any doubt posts `failure`.
+
+Wire it as a job on `pull_request` `synchronize` and `edited` (base change only) that `needs` the tier job (so the tier's high-tier placeholder never lands on top of a carried review), after `actions/checkout` with `fetch-depth: 0`, in a concurrency group without `cancel-in-progress` (a cancelled retarget run would leave a stale review green). Input `trusted-creators` defaults to `github-actions[bot],seatsnags-harness[bot],ikkidev`. With it in place the repo can turn off GitHub's "Dismiss stale pull request approvals when new commits are pushed": the harness, not GitHub, decides when a review went stale. Trust is by honor: a teammate with push access could post the status themselves.
+
 ## Cross-repo order: depends-on and record-deployed
 
 For a repo that deploys on merge (the website) paired with an upstream that reaches production only after a promote (the API). The upstream records what production runs; the downstream holds each PR until the upstream PRs it names are in it.
